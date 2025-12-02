@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Warehouse Picking Map</title>
+    <link rel="stylesheet" href="./styles.css?v=2">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏭 B4 Extension Map</h1>
+            <div class="header-actions">
+                <button class="btn" id="exportImageBtn" style="display:none;">📷 Export Image</button>
+                <button class="btn" id="exportExcelBtn" style="display:none;">📊 Export Metrics</button>
+            </div>
+        </div>
+        
+        <div class="upload-section">
+            <div class="upload-cards">
+                <div class="upload-card" id="locationUploadBox">
+                    <div class="upload-card-icon">📍</div>
+                    <div class="upload-card-title">Location Master</div>
+                    <div class="upload-card-desc">Upload layout (.xlsx/.xls)</div>
+                    <input type="file" id="fileInput" class="file-input" accept=".xlsx,.xls">
+                </div>
+                <div class="upload-card" id="routeUploadBox">
+                    <div class="upload-card-icon">🛤️</div>
+                    <div class="upload-card-title">Route Data</div>
+                    <div class="upload-card-desc">Upload routes (.xlsx/.xls)</div>
+                    <input type="file" id="routeFileInput" class="file-input" accept=".xlsx,.xls">
+                </div>
+            </div>
+        </div>
+
+        <!-- Column Mapping -->
+        <div id="columnMappingSection">
+            <div class="mapping-header">
+                <span style="font-size:20px;">📋</span>
+                <h3>Column Mapping</h3>
+            </div>
+            <div class="mapping-grid">
+                <div class="mapping-field">
+                    <label>Wave_path/Picker Column:</label>
+                    <select id="colWave"><option value="">-- Select --</option></select>
+                    <small>Identifies wave paths or pickers</small>
+                </div>
+                <div class="mapping-field">
+                    <label>Pick Time Column:</label>
+                    <select id="colTime"><option value="">-- Select --</option></select>
+                    <small>For sorting route order</small>
+                </div>
+                <div class="mapping-field">
+                    <label>Location Column: <span style="color:#e74c3c;">*</span></label>
+                    <select id="colLocation"><option value="">-- Select --</option></select>
+                    <small>Required - location identifier</small>
+                </div>
+                <div class="mapping-field">
+                    <label>Aisle Column:</label>
+                    <select id="colAisle"><option value="">-- None --</option></select>
+                    <small>For tracking aisle crosses</small>
+                </div>
+                <div class="mapping-field">
+                    <label>SKU Column: <span style="color:#e74c3c;">*</span></label>
+                    <select id="colSku"><option value="">-- Select --</option></select>
+                    <small>Required - SKU identifier</small>
+                </div>
+            </div>
+            <div style="display:flex; gap:15px; align-items:center;">
+                <button class="btn btn-success" id="confirmMappingBtn">✓ Confirm & Process</button>
+                <span id="mappingStatus" style="color:rgba(255,255,255,0.6); font-size:13px;"></span>
+            </div>
+            <div id="previewSection">
+                <h4 style="color:#fff; margin-bottom:10px; font-size:13px;">Data Preview:</h4>
+                <div id="previewTable"></div>
+            </div>
+        </div>
+        
+        <div class="controls" id="controls">
+            <div class="control-group">
+                <label>🔍 Search:</label>
+                <input type="text" id="searchInput" placeholder="Location..." style="width:120px;">
+            </div>
+            <div class="control-group">
+                <label>📍 Zone:</label>
+                <select id="zoneFilter" style="width:100px;"><option value="">All</option></select>
+            </div>
+            <div class="control-group">
+                <label>🔎 Zoom:</label>
+                <input type="range" id="zoomSlider" min="0.3" max="4" step="0.1" value="1" style="width:80px;">
+            </div>
+            <div class="control-group">
+                <button class="btn btn-sm" id="shortcutsBtn" title="Press ? to show shortcuts">⌨️ Shortcuts</button>
+            </div>
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-label">Shelves</div>
+                    <div class="stat-value" id="totalShelves">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Wave Controls -->
+        <div class="wave-controls" id="waveControls">
+            <div class="wave-search-wrapper">
+                <span class="wave-search-icon">🔍</span>
+                <input type="text" class="wave-search-input" id="waveSearchInput" placeholder="Search wave...">
+            </div>
+            
+            <div class="multi-select-wrapper">
+                <div class="multi-select-btn" id="multiSelectBtn">Select Wave Paths (0)</div>
+                <div class="multi-select-dropdown" id="multiSelectDropdown"></div>
+                <div class="multi-select-actions">
+                    <button class="btn btn-sm" id="selectAllWavesBtn">Select All</button>
+                    <button class="btn btn-sm btn-danger" id="clearWavesBtn">Clear</button>
+                </div>
+            </div>
+            
+            <div class="mode-toggle">
+                <button class="mode-btn active" data-mode="route">Route</button>
+                <button class="mode-btn" data-mode="heatmap">Heatmap</button>
+            </div>
+
+            <div class="control-group">
+                <button class="btn btn-sm" id="toggleZonesBtn" title="Toggle zone background overlay">
+                    📍 Show Zones
+                </button>
+            </div>
+            
+            <div class="playback-section">
+                <div class="playback-btns">
+                    <button class="btn btn-sm" id="playBtn">▶</button>
+                    <button class="btn btn-sm btn-warning" id="pauseBtn" style="display:none;">⏸</button>
+                    <button class="btn btn-sm btn-danger" id="stopBtn">⏹</button>
+                </div>
+                <div class="progress-slider-wrapper">
+                    <input type="range" class="progress-slider" id="progressSlider" min="0" max="100" value="0">
+                    <span class="progress-label" id="progressLabel">0 / 0</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label>Speed:</label>
+                <input type="range" id="speedSlider" min="50" max="1000" step="50" value="400" style="width:80px;">
+                <span id="speedValue" style="color:rgba(255,255,255,0.5);font-size:11px;">400ms</span>
+            </div>
+        </div>
+        
+        <div class="map-container" id="mapContainer">
+            <div class="canvas-wrapper">
+                <canvas id="mapCanvas"></canvas>
+                <div class="tooltip" id="tooltip"></div>
+            </div>
+            
+            <div class="legend" id="routeLegend">
+                <div class="legend-title">Legend</div>
+                <div class="legend-items" id="legendItems">
+                    <div class="legend-item"><div class="legend-color" style="background:#667eea;"></div><span>Normal shelf</span></div>
+                    <div class="legend-item"><div class="legend-color" style="background:#ff6b6b;"></div><span>Route location</span></div>
+                    <div class="legend-item"><div class="legend-color" style="background:#2ecc71;"></div><span>Search match</span></div>
+                    <div class="legend-item"><div class="legend-color" style="background:#00bcd4;"></div><span>Current position</span></div>
+                </div>
+            </div>
+            
+            <div class="heatmap-legend" id="heatmapLegend">
+                <div class="legend-title">Heatmap - Visit Frequency</div>
+                <div class="heatmap-gradient"></div>
+                <div class="heatmap-labels">
+                    <span>Low (1 visit)</span>
+                    <span>Medium</span>
+                    <span>High (<span id="maxVisits">10</span>+ visits)</span>
+                </div>
+            </div>
+
+            <div class="metrics-panel" id="metricsPanel">
+                <div class="metrics-header">
+                    <h3>📊 Route Metrics</h3>
+                </div>
+
+                <!-- SKU Statistics Section -->
+                <div class="sku-stats-section" id="skuStatsSection">
+                    <div class="sku-stats-header">
+                        <h4>📦 SKU Statistics</h4>
+                        <span class="sku-count" id="skuCount">0 SKUs</span>
+                    </div>
+                    <div class="sku-stats-list" id="skuStatsList">
+                        <div class="sku-stats-empty">No SKU data available</div>
+                    </div>
+                </div>
+
+                <!-- Metrics Cards Section (Moved inside metrics panel) -->
+                <div class="metrics-cards-section" id="metricsCardsSection">
+                    <div class="metrics-grid">
+                        <div class="metric-card warning clickable" id="locationCrossCard">
+                            <div class="metric-label">Slot Revisit</div>
+                            <div class="metric-value" id="metricLocationCrosses">0</div>
+                            <div class="metric-subtitle">revisit count</div>
+                        </div>
+                        <div class="metric-card warning clickable" id="locationCrossBayCard">
+                            <div class="metric-label">Shelf Revisit</div>
+                            <div class="metric-value" id="metricLocationCrossesBay">0</div>
+                            <div class="metric-subtitle">revisit count</div>
+                        </div>
+                        <div class="metric-card danger clickable" id="aisleCrossCard">
+                            <div class="metric-label">Aisle Revisit</div>
+                            <div class="metric-value" id="metricAisleCrosses">0</div>
+                            <div class="metric-subtitle">revisit count</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Current Unit</div>
+                            <div class="metric-value" id="metricCurrentUnit">0</div>
+                            <div class="metric-subtitle" id="metricTotalUnits">of 0 total</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Route Distance</div>
+                            <div class="metric-value" id="metricDistance">0 m</div>
+                            <div class="metric-subtitle">meters</div>
+                        </div>
+                        <div class="metric-card info">
+                            <div class="metric-label">Total Time</div>
+                            <div class="metric-value" id="metricTotalTime">0:00</div>
+                            <div class="metric-subtitle">picking duration</div>
+                        </div>
+                        <div class="metric-card info">
+                            <div class="metric-label">Avg Time/Unit</div>
+                            <div class="metric-value" id="metricAvgTime">0s</div>
+                            <div class="metric-subtitle">per location</div>
+                        </div>
+                        <div class="metric-card info">
+                            <div class="metric-label">Pick Speed</div>
+                            <div class="metric-value" id="metricPickSpeed">0</div>
+                            <div class="metric-subtitle">units/min</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Wave Comparison Table -->
+        <div class="comparison-table-section" id="comparisonTableSection">
+            <div class="table-header">
+                <h3>📊 Wave Comparison Analysis</h3>
+                <div class="table-actions">
+                    <button class="btn btn-sm" id="exportTableBtn">📋 Export Table</button>
+                </div>
+            </div>
+            <div class="table-wrapper">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-sort="waveId">Wave ID ▼</th>
+                            <th class="sortable" data-sort="units">Units</th>
+                            <th class="sortable" data-sort="distance">Distance (m)</th>
+                            <th class="sortable" data-sort="time">Duration</th>
+                            <th class="sortable" data-sort="revisits">Total Revisits</th>
+                            <th class="sortable" data-sort="speed">Speed (u/min)</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="comparisonTableBody">
+                        <tr>
+                            <td colspan="7" class="table-empty">Select waves to see comparison data</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Aisle/Location Detail Modal -->
+    <div class="modal-overlay" id="detailModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modalTitle">Details</h3>
+                <button class="modal-close" onclick="closeModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <ul class="detail-list" id="detailList"></ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="info-panel" id="infoPanel">
+        <div class="info-header">
+            <h2>📦 Shelf Details</h2>
+            <button class="close-btn" onclick="closeInfoPanel()">×</button>
+        </div>
+        <div class="info-content" id="infoContent"></div>
+    </div>
+
+<script type="module" src="./app.js?v=3"></script>
+</body>
+</html>
