@@ -491,17 +491,20 @@ export function closeModal() {
 }
 
 export function updateLegend(displayMode, selectedWaves) {
-  document.getElementById('routeLegend').style.display = displayMode === 'route' ? 'block' : 'none';
-  document.getElementById('heatmapLegend').style.display = displayMode === 'heatmap' ? 'block' : 'none';
+  const routeLegend = document.getElementById('routeLegend');
+  const heatmapLegend = document.getElementById('heatmapLegend');
+  if (!routeLegend || !heatmapLegend) return;
+  routeLegend.style.display = displayMode === 'route' ? 'block' : 'none';
+  heatmapLegend.style.display = displayMode === 'heatmap' ? 'block' : 'none';
   if (displayMode === 'route' && selectedWaves.length > 0) {
     const legendItems = document.getElementById('legendItems');
     let html = `
       <div class="legend-item"><div class="legend-color" style="background:#667eea;"></div><span>Normal shelf</span></div>
       <div class="legend-item"><div class="legend-color" style="background:#ff6b6b;"></div><span>Route location</span></div>
       <div class="legend-item"><div class="legend-color" style="background:#2ecc71;"></div><span>Search match</span></div>
-      <div class="legend-item"><div class="legend-color" style="background:#e74c3c;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:bold;">S</div><span>Slot Revisit</span></div>
-      <div class="legend-item"><div class="legend-color" style="background:#e67e22;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:bold;">B</div><span>Shelf Revisit</span></div>
-      <div class="legend-item"><div class="legend-color" style="background:#f1c40f;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:bold;">A</div><span>Aisle Revisit</span></div>
+      <div class="legend-item"><div class="legend-color" style="background:#e74c3c;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:bold;">S</div><span>Slot Revisit</span></div>
+      <div class="legend-item"><div class="legend-color" style="background:#e67e22;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:bold;">B</div><span>Shelf Revisit</span></div>
+      <div class="legend-item"><div class="legend-color" style="background:#f1c40f;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:bold;">A</div><span>Aisle Revisit</span></div>
     `;
     selectedWaves.forEach((waveId, idx) => {
       html += `<div class="legend-item"><div class="legend-color" style="background:${getPathColor(idx)};"></div><span>${waveId}</span></div>`;
