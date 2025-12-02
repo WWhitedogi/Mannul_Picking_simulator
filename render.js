@@ -1,4 +1,31 @@
 import { getHeatmapColor, getPathColor, findAislePath } from './services.js';
+import { state } from './state.js';
+
+// Revisit pulse animation (for flashing outlines)
+let revisitPulseActive = false;
+let revisitPulseId = null;
+
+function stopRevisitPulse() {
+  if (revisitPulseId) cancelAnimationFrame(revisitPulseId);
+  revisitPulseId = null;
+  revisitPulseActive = false;
+}
+
+function ensureRevisitPulse(state) {
+  if (revisitPulseActive) return;
+  revisitPulseActive = true;
+  const tick = () => {
+    if (!revisitPulseActive) return;
+    // If animation is running, rely on main loop instead
+    if (state.isPlaying) {
+      stopRevisitPulse();
+      return;
+    }
+    drawMap(state); // redraw to update pulse alpha
+    revisitPulseId = requestAnimationFrame(tick);
+  };
+  revisitPulseId = requestAnimationFrame(tick);
+}
 
 export function initCanvas(state, handlers) {
   state.canvas = document.getElementById('mapCanvas');
@@ -141,6 +168,22 @@ export function drawMap(state) {
     shelf.rectH = h;
   });
 
+  // Precompute revisit sets for flashing highlight
+  const selectedWaveSet = new Set(state.selectedWaves);
+  const slotRevisitSet = new Set(
+    state.locationCrossDetails.filter((d) => selectedWaveSet.has(d.wave)).map((d) => d.location),
+  );
+  const bayRevisitSet = new Set(
+    state.locationCrossBayDetails.filter((d) => selectedWaveSet.has(d.wave)).map((d) => d.bayLocation),
+  );
+  const aisleRevisitSet = new Set(
+    state.aisleCrossDetails.filter((d) => selectedWaveSet.has(d.wave)).map((d) => String(d.aisle)),
+  );
+  const pulse = 0.4 + 0.4 * Math.abs(Math.sin(Date.now() / 220));
+  const hasRevisit =
+    displayMode === 'route' &&
+    (slotRevisitSet.size > 0 || bayRevisitSet.size > 0 || aisleRevisitSet.size > 0);
+
   // Draw zone backgrounds if enabled
   if (state.showZones) {
     drawZoneBackgrounds(ctx, filteredShelves, canvas, padding, minX, minY, baseScale, offsetX, offsetY);
@@ -223,62 +266,28 @@ export function drawMap(state) {
     ctx.strokeStyle = 'rgba(0,0,0,0.3)';
     ctx.lineWidth = 1;
     ctx.stroke();
+
+    // Flashing outline for revisits instead of covering circles
+    if (displayMode === 'route') {
+      const bayKey = shelf.location ? shelf.location.split('-').slice(0, 2).join('-') : shelf.aisleBay;
+      const isSlotRevisit = (shelf.location && slotRevisitSet.has(shelf.location)) || (shelf.aisleBay && slotRevisitSet.has(shelf.aisleBay));
+      const isBayRevisit = bayKey && bayRevisitSet.has(bayKey);
+      const isAisleRevisit = shelf.aisle != null && aisleRevisitSet.has(String(shelf.aisle));
+
+      if (isSlotRevisit || isBayRevisit || isAisleRevisit) {
+        const strokeColor = '#ffffff';
+        ctx.save();
+        ctx.lineWidth = 3;
+        ctx.globalAlpha = pulse;
+        ctx.strokeStyle = strokeColor;
+        ctx.strokeRect(shelf.rectX + 1.5, shelf.rectY + 1.5, shelf.rectW - 3, shelf.rectH - 3);
+        ctx.restore();
+      }
+    }
   });
 
-  if (displayMode === 'route') {
-    // 绘制回头草标记
-    state.selectedWaves.forEach((waveId, idx) => {
-      const path = state.visitedPaths[waveId];
-      if (!path || path.length === 0) return;
-
-      // 绘制Slot级别回头草（红色）
-      const slotRevisits = state.locationCrossDetails.filter(d => d.wave === waveId);
-      slotRevisits.forEach(revisit => {
-        const shelf = filteredShelves.find(s => s.location === revisit.location || s.aisleBay === revisit.location);
-        if (shelf && shelf.screenX) {
-          drawRevisitMarker(ctx, shelf.screenX, shelf.screenY, '#e74c3c', 'S');
-
-          // 绘制虚线连接：首次访问 → 回访
-          const firstVisitShelf = path[revisit.firstVisit - 1];
-          if (firstVisitShelf && firstVisitShelf.screenX) {
-            drawDashedArc(ctx, firstVisitShelf.screenX, firstVisitShelf.screenY, shelf.screenX, shelf.screenY, '#e74c3c');
-          }
-        }
-      });
-
-      // 绘制Shelf（Bay-level）回头草（橙色）
-      const bayRevisits = state.locationCrossBayDetails.filter(d => d.wave === waveId);
-      bayRevisits.forEach(revisit => {
-        const shelf = filteredShelves.find(s => {
-          const bayLoc = s.location ? s.location.split('-').slice(0, 2).join('-') : s.aisleBay;
-          return bayLoc === revisit.bayLocation;
-        });
-        if (shelf && shelf.screenX) {
-          drawRevisitMarker(ctx, shelf.screenX, shelf.screenY + 18, '#e67e22', 'B');
-
-          const firstVisitShelf = path[revisit.firstVisit - 1];
-          if (firstVisitShelf && firstVisitShelf.screenX) {
-            drawDashedArc(ctx, firstVisitShelf.screenX, firstVisitShelf.screenY, shelf.screenX, shelf.screenY + 18, '#e67e22');
-          }
-        }
-      });
-
-      // 绘制Aisle级别回头草（黄色）
-      const aisleRevisits = state.aisleCrossDetails.filter(d => d.wave === waveId);
-      aisleRevisits.forEach(revisit => {
-        const shelf = filteredShelves.find(s => String(s.aisle) === String(revisit.aisle));
-        if (shelf && shelf.screenX) {
-          drawRevisitMarker(ctx, shelf.screenX, shelf.screenY - 18, '#f1c40f', 'A');
-
-          const firstVisitShelf = path[revisit.firstVisit - 1];
-          if (firstVisitShelf && firstVisitShelf.screenX) {
-            drawDashedArc(ctx, firstVisitShelf.screenX, firstVisitShelf.screenY, shelf.screenX, shelf.screenY - 18, '#f1c40f');
-          }
-        }
-      });
-    });
-
-    // 绘制拣货员图标
+  if (displayMode === 'route' && state.isPlaying) {
+    // 仅播放时绘制拣货员图标
     state.selectedWaves.forEach((waveId, idx) => {
       const path = state.visitedPaths[waveId];
       if (!path || path.length === 0) return;
@@ -286,6 +295,13 @@ export function drawMap(state) {
       if (!shelf) return;
       drawPicker(ctx, shelf.screenX, shelf.screenY, getPathColor(idx), waveId);
     });
+  }
+
+  // Manage pulse loop
+  if (hasRevisit && !state.isPlaying) {
+    ensureRevisitPulse(state);
+  } else {
+    stopRevisitPulse();
   }
 }
 
@@ -313,29 +329,7 @@ export function drawPicker(ctx, x, y, color, label) {
 }
 
 // 绘制回头草标记
-export function drawRevisitMarker(ctx, x, y, color, label) {
-  ctx.save();
-  ctx.fillStyle = color;
-  ctx.strokeStyle = '#fff';
-  ctx.lineWidth = 2;
-
-  // 绘制圆形标记
-  ctx.beginPath();
-  ctx.arc(x, y, 12, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
-
-  // 绘制字母标签
-  ctx.fillStyle = '#fff';
-  ctx.font = 'bold 11px Arial';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(label, x, y);
-
-  ctx.restore();
-}
-
-// 绘制虚线弧线连接
+// 绘制虚线弧线连接（目前未使用 marker，但保留工具函数以备后续需要）
 export function drawDashedArc(ctx, x1, y1, x2, y2, color) {
   ctx.save();
   ctx.strokeStyle = color;
@@ -378,6 +372,28 @@ export function hideTooltip() {
 
 export function showInfoPanel(shelf) {
   const panel = document.getElementById('infoPanel');
+  const waveSet = new Set(state.selectedWaves);
+  const bayKey = shelf.location ? shelf.location.split('-').slice(0, 2).join('-') : shelf.aisleBay;
+  const slotRevisits = state.locationCrossDetails.filter(
+    (d) => waveSet.has(d.wave) && (d.location === shelf.location || d.location === shelf.aisleBay),
+  );
+  const bayRevisits = state.locationCrossBayDetails.filter((d) => waveSet.has(d.wave) && d.bayLocation === bayKey);
+  const aisleRevisits = state.aisleCrossDetails.filter(
+    (d) => waveSet.has(d.wave) && String(d.aisle) === String(shelf.aisle),
+  );
+  const hasRevisit = slotRevisits.length + bayRevisits.length + aisleRevisits.length > 0;
+  const renderRevisitList = (items, label) =>
+    items
+      .map(
+        (d) => `
+      <div class="info-row">
+        <span class="info-label">${label}:</span>
+        <span class="info-value">Wave ${d.wave} - revisit step ${d.revisit} (first: ${d.firstVisit})</span>
+      </div>
+    `,
+      )
+      .join('');
+
   document.getElementById('infoContent').innerHTML = `
     <div class="info-section">
         <h3>Basic Info</h3>
@@ -396,6 +412,16 @@ export function showInfoPanel(shelf) {
     ${
       shelf.visitCount > 0
         ? `<div class="info-section"><h3>Statistics</h3><div class="info-row"><span class="info-label">Visit Count:</span><span class="info-value" style="color:#e74c3c;">${shelf.visitCount}</span></div></div>`
+        : ''
+    }
+    ${
+      hasRevisit
+        ? `<div class="info-section">
+            <h3>Revisit Details</h3>
+            ${renderRevisitList(slotRevisits, 'Slot')}
+            ${renderRevisitList(bayRevisits, 'Shelf')}
+            ${renderRevisitList(aisleRevisits, 'Aisle')}
+          </div>`
         : ''
     }
   `;

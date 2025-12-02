@@ -427,6 +427,7 @@ function stopAnimation() {
   document.getElementById('playBtn').style.display = 'inline-block';
   document.getElementById('pauseBtn').style.display = 'none';
   drawMap(state);
+  updateAbnormalWaves();
 }
 
 function seekAnimation(e) {
@@ -463,6 +464,7 @@ function seekAnimation(e) {
   state.currentStep = targetStep;
   updateMetricsDisplay();
   drawMap(state);
+  updateAbnormalWaves();
 }
 
 let lastAnimationTime = 0;
@@ -1024,23 +1026,34 @@ document.getElementById('speedValue').textContent = `${DEFAULT_PICKER_STEP_DURAT
 
 // ==================== Abnormal Waves Functionality ====================
 
-// Update abnormal waves data based on current analysis
+// Update abnormal waves data based on all waves (use cached metrics if available)
 function updateAbnormalWaves() {
   state.abnormalWaves = {};
 
-  // Collect data from all analyzed waves
-  state.selectedWaves.forEach(waveId => {
-    const slotRevisits = state.locationCrossDetails.filter(d => d.wave === waveId).length;
-    const shelfRevisits = state.locationCrossBayDetails.filter(d => d.wave === waveId).length;
-    const aisleRevisits = state.aisleCrossDetails.filter(d => d.wave === waveId).length;
-    const total = slotRevisits + shelfRevisits + aisleRevisits;
+  const waves = state.allWaveIds && state.allWaveIds.length ? state.allWaveIds : Object.keys(state.waveRoutes);
+
+  waves.forEach((waveId) => {
+    // 优先使用已缓存的表格指标，避免重复计算
+    let metrics = cachedTableMetrics[waveId];
+    if (!metrics) {
+      metrics = calculateWaveMetrics(
+        waveId,
+        state.waveRoutes,
+        { verticalAisles: state.verticalAisles, horizontalAisles: state.horizontalAisles },
+        state.shelves,
+      );
+      cachedTableMetrics[waveId] = metrics;
+    }
+
+    const { locationCrosses = 0, locationCrossesBay = 0, aisleCrosses = 0 } = metrics;
+    const total = locationCrosses + locationCrossesBay + aisleCrosses;
 
     if (total > 0) {
       state.abnormalWaves[waveId] = {
-        slotRevisits,
-        shelfRevisits,
-        aisleRevisits,
-        total
+        slotRevisits: locationCrosses,
+        shelfRevisits: locationCrossesBay,
+        aisleRevisits: aisleCrosses,
+        total,
       };
     }
   });
@@ -1062,7 +1075,7 @@ function updateAbnormalWavesUI() {
   });
 
   document.getElementById('abnormalWavesBtn').textContent =
-    `🚨 Abnormal Waves (${filteredWaves.length})`;
+    `🚨 Check Abnormal Wave (${filteredWaves.length})`;
 
   const listContainer = document.getElementById('abnormalWavesList');
 
@@ -1103,8 +1116,11 @@ function updateAbnormalWavesUI() {
   });
 }
 
-// Select an abnormal wave (replace current selection)
-function selectAbnormalWave(waveId) {
+// Select an abnormal wave (replace current selection and auto-play)
+async function selectAbnormalWave(waveId) {
+  // Stop any current playback before switching wave
+  stopAnimation();
+
   // Clear current selection
   state.selectedWaves = [waveId];
 
@@ -1119,9 +1135,10 @@ function selectAbnormalWave(waveId) {
   // Close abnormal dropdown
   document.getElementById('abnormalDropdown').classList.remove('show');
 
-  // Refresh routes
+  // Refresh routes and auto-play the selected abnormal wave
   resetRouteState();
-  prepareRoutes();
+  await prepareRoutes();
+  playAnimation();
 }
 
 // Toggle abnormal dropdown
