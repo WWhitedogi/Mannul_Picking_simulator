@@ -28,6 +28,10 @@ import {
 window.closeModal = closeModal;
 window.closeInfoPanel = closeInfoPanel;
 
+// Track file uploads so we can hide the upload section once both are loaded
+let locationFileUploaded = false;
+let routeFileUploaded = false;
+
 // ===== Initialization =====
 document.getElementById('locationUploadBox').addEventListener('click', () => document.getElementById('fileInput').click());
 document.getElementById('routeUploadBox').addEventListener('click', () => document.getElementById('routeFileInput').click());
@@ -66,7 +70,6 @@ document.getElementById('speedSlider').addEventListener('input', (e) => {
 });
 
 document.getElementById('multiSelectBtn').addEventListener('click', toggleDropdown);
-document.getElementById('waveSearchInput').addEventListener('input', filterWaveOptions);
 document.addEventListener('click', (e) => {
   if (!e.target.closest('.multi-select-wrapper')) document.getElementById('multiSelectDropdown').classList.remove('show');
 });
@@ -102,6 +105,7 @@ document.getElementById('zoneFilter').addEventListener('change', handleZoneFilte
 document.getElementById('zoomSlider').addEventListener('input', handleZoom);
 document.getElementById('shortcutsBtn').addEventListener('click', showKeyboardShortcutsHelp);
 document.getElementById('toggleZonesBtn').addEventListener('click', handleToggleZones);
+document.getElementById('skuToggleBtn').addEventListener('click', handleSkuToggle);
 
 function handleLocationFile(file) {
   const reader = new FileReader();
@@ -130,6 +134,8 @@ function handleLocationFile(file) {
       }
     }
     drawMap(state);
+    locationFileUploaded = true;
+    maybeHideUploadSection();
   };
   reader.readAsArrayBuffer(file);
   document.getElementById('locationUploadBox').classList.add('uploaded');
@@ -148,6 +154,8 @@ function handleRouteFile(file) {
     document.getElementById('routeUploadBox').classList.add('uploaded');
     document.getElementById('routeUploadBox').querySelector('.upload-card-title').textContent = '✓ Loaded';
     showColumnMapping(state.rawRouteData);
+    routeFileUploaded = true;
+    maybeHideUploadSection();
   };
   reader.readAsArrayBuffer(file);
 }
@@ -192,6 +200,13 @@ function showColumnMapping(data) {
   document.getElementById('previewTable').innerHTML = html;
   document.getElementById('previewSection').style.display = 'block';
   document.getElementById('mappingStatus').textContent = `${data.length} rows loaded`;
+}
+
+function maybeHideUploadSection() {
+  if (locationFileUploaded && routeFileUploaded) {
+    const uploadSection = document.querySelector('.upload-section');
+    if (uploadSection) uploadSection.style.display = 'none';
+  }
 }
 
 function processRouteDataWithMapping() {
@@ -300,12 +315,6 @@ function buildGlobalTimeline(selectedWaves, waveRoutes) {
   return timeline;
 }
 
-function filterWaveOptions() {
-  const q = document.getElementById('waveSearchInput').value.toLowerCase();
-  const filtered = q ? state.allWaveIds.filter((id) => id.toLowerCase().includes(q)) : state.allWaveIds;
-  updateMultiSelect(filtered);
-}
-
 function handleWaveSelection() {
   const checkboxes = document.querySelectorAll('#multiSelectDropdown input:checked');
   state.selectedWaves = Array.from(checkboxes).map((cb) => cb.value);
@@ -325,7 +334,6 @@ async function prepareRoutes() {
 
   if (state.selectedWaves.length === 0) {
     document.getElementById('metricsPanel').style.display = 'none';
-    document.getElementById('metricsCardsSection').style.display = 'none';
     document.getElementById('comparisonTableSection').style.display = 'none';
     drawMap(state);
     return;
@@ -334,7 +342,6 @@ async function prepareRoutes() {
   // 显示加载状态
   const metricsPanel = document.getElementById('metricsPanel');
   metricsPanel.style.display = 'block';
-  document.getElementById('metricsCardsSection').style.display = 'block';
 
   // 快速更新基本信息
   state.maxRouteSteps = 0;
@@ -365,6 +372,7 @@ async function prepareRoutes() {
   // 异步更新对比表格（如有需要）
   prepareRoutesTimeout = setTimeout(() => {
     buildComparisonTable();
+    updateAbnormalWaves();  // Update abnormal waves after analysis
   }, 100);
 }
 
@@ -579,6 +587,22 @@ function handleToggleZones() {
     btn.style.color = '';
   }
   drawMap(state);
+}
+
+function handleSkuToggle() {
+  const btn = document.getElementById('skuToggleBtn');
+  const list = document.getElementById('skuStatsList');
+  const icon = btn.querySelector('.toggle-icon');
+
+  if (list.classList.contains('collapsed')) {
+    list.classList.remove('collapsed');
+    btn.classList.add('expanded');
+    btn.innerHTML = '<span class="toggle-icon">▼</span> Collapse';
+  } else {
+    list.classList.add('collapsed');
+    btn.classList.remove('expanded');
+    btn.innerHTML = '<span class="toggle-icon">▼</span> Expand';
+  }
 }
 
 function updateStats() {
@@ -997,3 +1021,154 @@ function showKeyboardShortcutsHelp() {
 
 // Ensure initial zoom slider matches default
 document.getElementById('speedValue').textContent = `${DEFAULT_PICKER_STEP_DURATION}ms`;
+
+// ==================== Abnormal Waves Functionality ====================
+
+// Update abnormal waves data based on current analysis
+function updateAbnormalWaves() {
+  state.abnormalWaves = {};
+
+  // Collect data from all analyzed waves
+  state.selectedWaves.forEach(waveId => {
+    const slotRevisits = state.locationCrossDetails.filter(d => d.wave === waveId).length;
+    const shelfRevisits = state.locationCrossBayDetails.filter(d => d.wave === waveId).length;
+    const aisleRevisits = state.aisleCrossDetails.filter(d => d.wave === waveId).length;
+    const total = slotRevisits + shelfRevisits + aisleRevisits;
+
+    if (total > 0) {
+      state.abnormalWaves[waveId] = {
+        slotRevisits,
+        shelfRevisits,
+        aisleRevisits,
+        total
+      };
+    }
+  });
+
+  updateAbnormalWavesUI();
+}
+
+// Update abnormal waves dropdown UI
+function updateAbnormalWavesUI() {
+  const filterSlot = document.getElementById('filterSlot').checked;
+  const filterShelf = document.getElementById('filterShelf').checked;
+  const filterAisle = document.getElementById('filterAisle').checked;
+
+  const filteredWaves = Object.entries(state.abnormalWaves).filter(([waveId, data]) => {
+    if (filterSlot && data.slotRevisits > 0) return true;
+    if (filterShelf && data.shelfRevisits > 0) return true;
+    if (filterAisle && data.aisleRevisits > 0) return true;
+    return false;
+  });
+
+  document.getElementById('abnormalWavesBtn').textContent =
+    `🚨 Abnormal Waves (${filteredWaves.length})`;
+
+  const listContainer = document.getElementById('abnormalWavesList');
+
+  if (filteredWaves.length === 0) {
+    listContainer.innerHTML = '<div style="padding:15px;text-align:center;color:rgba(255,255,255,0.4);font-size:12px;">No abnormal waves found</div>';
+    return;
+  }
+
+  listContainer.innerHTML = filteredWaves.map(([waveId, data]) => {
+    const badges = [];
+    if (data.slotRevisits > 0) {
+      badges.push(`<span class="abnormal-badge slot">${data.slotRevisits}S</span>`);
+    }
+    if (data.shelfRevisits > 0) {
+      badges.push(`<span class="abnormal-badge shelf">${data.shelfRevisits}B</span>`);
+    }
+    if (data.aisleRevisits > 0) {
+      badges.push(`<span class="abnormal-badge aisle">${data.aisleRevisits}A</span>`);
+    }
+
+    return `
+      <div class="abnormal-wave-item" data-wave-id="${waveId}">
+        <div class="abnormal-wave-title">${waveId}</div>
+        <div class="abnormal-wave-details">
+          ${badges.join(' ')}
+          <span style="margin-left:auto;color:rgba(255,255,255,0.3);">${data.total} total</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Add click handlers
+  document.querySelectorAll('.abnormal-wave-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const waveId = item.dataset.waveId;
+      selectAbnormalWave(waveId);
+    });
+  });
+}
+
+// Select an abnormal wave (replace current selection)
+function selectAbnormalWave(waveId) {
+  // Clear current selection
+  state.selectedWaves = [waveId];
+
+  // Update UI
+  document.getElementById('multiSelectBtn').textContent = `Select Wave Paths (1)`;
+
+  // Update checkboxes in main dropdown
+  document.querySelectorAll('#multiSelectDropdown input[type="checkbox"]').forEach(cb => {
+    cb.checked = (cb.value === waveId);
+  });
+
+  // Close abnormal dropdown
+  document.getElementById('abnormalDropdown').classList.remove('show');
+
+  // Refresh routes
+  resetRouteState();
+  prepareRoutes();
+}
+
+// Toggle abnormal dropdown
+function toggleAbnormalDropdown() {
+  const dropdown = document.getElementById('abnormalDropdown');
+  dropdown.classList.toggle('show');
+
+  // Close main dropdown if open
+  document.getElementById('multiSelectDropdown').classList.remove('show');
+}
+
+// Select all abnormal waves
+function selectAllAbnormalWaves() {
+  const abnormalWaveIds = Object.keys(state.abnormalWaves);
+
+  if (abnormalWaveIds.length === 0) return;
+
+  // Set selected waves to all abnormal waves
+  state.selectedWaves = abnormalWaveIds;
+
+  // Update UI
+  document.getElementById('multiSelectBtn').textContent =
+    `Select Wave Paths (${abnormalWaveIds.length})`;
+
+  // Update checkboxes in main dropdown
+  document.querySelectorAll('#multiSelectDropdown input[type="checkbox"]').forEach(cb => {
+    cb.checked = abnormalWaveIds.includes(cb.value);
+  });
+
+  // Close abnormal dropdown
+  document.getElementById('abnormalDropdown').classList.remove('show');
+
+  // Refresh routes
+  resetRouteState();
+  prepareRoutes();
+}
+
+// Event listeners for abnormal waves
+document.getElementById('abnormalWavesBtn').addEventListener('click', toggleAbnormalDropdown);
+document.getElementById('selectAllAbnormalBtn').addEventListener('click', selectAllAbnormalWaves);
+document.getElementById('filterSlot').addEventListener('change', updateAbnormalWavesUI);
+document.getElementById('filterShelf').addEventListener('change', updateAbnormalWavesUI);
+document.getElementById('filterAisle').addEventListener('change', updateAbnormalWavesUI);
+
+// Close abnormal dropdown when clicking outside
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.multi-select-wrapper')) {
+    document.getElementById('abnormalDropdown').classList.remove('show');
+  }
+});

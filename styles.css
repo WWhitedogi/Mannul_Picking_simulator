@@ -6,19 +6,19 @@
         
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            background: #0d0d1a;
             min-height: 100vh;
             padding: 20px;
         }
-        
+
         .container {
             max-width: 1800px;
             margin: 0 auto;
-            background: #1e1e2e;
+            background: #0d0d1a;
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
             overflow: hidden;
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid rgba(0,0,0,0.1);
         }
         
         .header {
@@ -317,6 +317,96 @@
             display: inline-block;
         }
 
+        /* Abnormal Waves Styles */
+        .abnormal-btn {
+            background: rgba(231, 76, 60, 0.1);
+            border-color: rgba(231, 76, 60, 0.3);
+            color: #e74c3c;
+        }
+
+        .abnormal-btn:hover {
+            background: rgba(231, 76, 60, 0.2);
+        }
+
+        .abnormal-filters {
+            padding: 10px;
+            background: rgba(255,255,255,0.02);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .filter-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 0;
+            font-size: 12px;
+            color: rgba(255,255,255,0.8);
+            cursor: pointer;
+        }
+
+        .filter-checkbox input {
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .filter-checkbox:hover {
+            color: #fff;
+        }
+
+        .abnormal-divider {
+            height: 1px;
+            background: rgba(255,255,255,0.1);
+        }
+
+        #abnormalWavesList {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .abnormal-wave-item {
+            padding: 10px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .abnormal-wave-item:hover {
+            background: rgba(231, 76, 60, 0.1);
+        }
+
+        .abnormal-wave-title {
+            font-size: 12px;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+
+        .abnormal-wave-details {
+            font-size: 10px;
+            color: rgba(255,255,255,0.5);
+            display: flex;
+            gap: 10px;
+        }
+
+        .abnormal-badge {
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 10px;
+        }
+
+        .abnormal-badge.slot {
+            background: rgba(241, 196, 15, 0.2);
+            color: #f1c40f;
+        }
+
+        .abnormal-badge.shelf {
+            background: rgba(230, 126, 34, 0.2);
+            color: #e67e22;
+        }
+
+        .abnormal-badge.aisle {
+            background: rgba(231, 76, 60, 0.2);
+            color: #e74c3c;
+        }
+
         /* Playback Controls */
         .playback-section {
             display: flex;
@@ -381,11 +471,12 @@
         /* Metrics Panel */
         .metrics-panel {
             display: none;
-            margin-top: 15px;
+            margin-top: 20px;
             padding: 20px;
             background: rgba(255,255,255,0.03);
             border-radius: 10px;
             border: 1px solid rgba(255,255,255,0.1);
+            border-top: 2px solid rgba(102, 126, 234, 0.3);
         }
         
         .metrics-header {
@@ -399,8 +490,9 @@
         
         .metrics-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 12px;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
         }
         
         .metric-card {
@@ -428,7 +520,7 @@
 
         /* SKU Statistics Section */
         .sku-stats-section {
-            margin-bottom: 20px;
+            margin-bottom: 0;
             padding: 15px;
             background: rgba(255,255,255,0.02);
             border-radius: 8px;
@@ -450,6 +542,12 @@
             margin: 0;
         }
 
+        .sku-stats-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
         .sku-count {
             font-size: 11px;
             color: rgba(255,255,255,0.5);
@@ -458,9 +556,44 @@
             border-radius: 12px;
         }
 
+        .sku-toggle-btn {
+            padding: 4px 12px;
+            font-size: 11px;
+            background: rgba(102, 126, 234, 0.2);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            color: rgba(255,255,255,0.8);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .sku-toggle-btn:hover {
+            background: rgba(102, 126, 234, 0.3);
+            border-color: rgba(102, 126, 234, 0.5);
+        }
+
+        .toggle-icon {
+            display: inline-block;
+            transition: transform 0.3s;
+        }
+
+        .sku-toggle-btn.expanded .toggle-icon {
+            transform: rotate(180deg);
+        }
+
         .sku-stats-list {
             max-height: 300px;
             overflow-y: auto;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .sku-stats-list.collapsed {
+            max-height: 0;
+            overflow: hidden;
+        }
+
+        .sku-stats-list.collapsed-preview {
+            max-height: 150px;
+            overflow: hidden;
         }
 
         .sku-stats-empty {
@@ -658,23 +791,6 @@
             justify-content: space-between;
             font-size: 11px;
             color: rgba(255,255,255,0.6);
-        }
-
-        /* Metrics Cards Section (Below Map) */
-        .metrics-cards-section {
-            display: none;
-            padding: 20px;
-            margin-top: 20px;
-            background: rgba(255,255,255,0.02);
-            border-top: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .metrics-cards-section .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 15px;
-            max-width: 1400px;
-            margin: 0 auto;
         }
 
         /* Comparison Table */

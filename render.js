@@ -37,16 +37,16 @@ function drawZoneBackgrounds(ctx, filteredShelves, canvas, padding, minX, minY, 
 
   // Color palette for zones (semi-transparent)
   const zonePalette = [
-    'rgba(31, 119, 180, 0.12)',   // Blue
-    'rgba(255, 127, 14, 0.12)',   // Orange
-    'rgba(44, 160, 44, 0.12)',    // Green
-    'rgba(214, 39, 40, 0.12)',    // Red
-    'rgba(148, 103, 189, 0.12)',  // Purple
-    'rgba(140, 86, 75, 0.12)',    // Brown
-    'rgba(227, 119, 194, 0.12)',  // Pink
-    'rgba(127, 127, 127, 0.12)',  // Gray
-    'rgba(188, 189, 34, 0.12)',   // Olive
-    'rgba(23, 190, 207, 0.12)',   // Cyan
+    'rgba(31, 119, 180, 0.5)',   // Blue
+    'rgba(255, 127, 14, 0.5)',   // Orange
+    'rgba(44, 160, 44, 0.5)',    // Green
+    'rgba(214, 39, 40, 0.5)',    // Red
+    'rgba(148, 103, 189, 0.5)',  // Purple
+    'rgba(140, 86, 75, 0.5)',    // Brown
+    'rgba(227, 119, 194, 0.5)',  // Pink
+    'rgba(127, 127, 127, 0.5)',  // Gray
+    'rgba(188, 189, 34, 0.5)',   // Olive
+    'rgba(23, 190, 207, 0.5)',   // Cyan
   ];
 
   // Draw each zone's background
@@ -89,7 +89,16 @@ function drawZoneBackgrounds(ctx, filteredShelves, canvas, padding, minX, minY, 
 export function drawMap(state) {
   const { ctx, canvas, filteredShelves, offsetX, offsetY, displayMode } = state;
   if (!ctx || !canvas) return;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Background changes with zone toggle
+  const backgroundColor = state.showZones ? '#ffffff' : '#0d0d1a';
+  ctx.fillStyle = backgroundColor;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // Keep wrapper in sync with canvas background
+  if (canvas.parentElement) {
+    canvas.parentElement.style.background = backgroundColor;
+  }
+
   if (filteredShelves.length === 0) return;
 
   const xs = filteredShelves.map((s) => s.x);
@@ -106,7 +115,7 @@ export function drawMap(state) {
   const scaleY = (canvas.height - padding * 2) / rangeY;
   const baseScale = Math.min(scaleX, scaleY) * state.scale;
 
-  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.strokeStyle = 'rgba(0,0,0,0.05)';
   ctx.lineWidth = 1;
   for (let i = 0; i <= 10; i++) {
     const x = padding + ((canvas.width - padding * 2) * i) / 10;
@@ -211,7 +220,7 @@ export function drawMap(state) {
     ctx.beginPath();
     ctx.rect(shelf.rectX, shelf.rectY, shelf.rectW, shelf.rectH);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
     ctx.lineWidth = 1;
     ctx.stroke();
   });

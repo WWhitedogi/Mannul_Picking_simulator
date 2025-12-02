@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Warehouse Picking Map</title>
-    <link rel="stylesheet" href="./styles.css?v=2">
+    <link rel="stylesheet" href="./styles.css?v=5">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🏭 B4 Extension Map</h1>
+            <h1> B4 Extension Map</h1>
             <div class="header-actions">
                 <button class="btn" id="exportImageBtn" style="display:none;">📷 Export Image</button>
                 <button class="btn" id="exportExcelBtn" style="display:none;">📊 Export Metrics</button>
@@ -37,7 +37,7 @@
         <!-- Column Mapping -->
         <div id="columnMappingSection">
             <div class="mapping-header">
-                <span style="font-size:20px;">📋</span>
+                <span style="font-size:20px;"></span>
                 <h3>Column Mapping</h3>
             </div>
             <div class="mapping-grid">
@@ -103,17 +103,39 @@
 
         <!-- Wave Controls -->
         <div class="wave-controls" id="waveControls">
-            <div class="wave-search-wrapper">
-                <span class="wave-search-icon">🔍</span>
-                <input type="text" class="wave-search-input" id="waveSearchInput" placeholder="Search wave...">
-            </div>
-            
             <div class="multi-select-wrapper">
                 <div class="multi-select-btn" id="multiSelectBtn">Select Wave Paths (0)</div>
                 <div class="multi-select-dropdown" id="multiSelectDropdown"></div>
                 <div class="multi-select-actions">
                     <button class="btn btn-sm" id="selectAllWavesBtn">Select All</button>
                     <button class="btn btn-sm btn-danger" id="clearWavesBtn">Clear</button>
+                </div>
+            </div>
+
+            <div class="multi-select-wrapper">
+                <div class="multi-select-btn abnormal-btn" id="abnormalWavesBtn">
+                    🚨 Abnormal Waves (0)
+                </div>
+                <div class="multi-select-dropdown" id="abnormalDropdown">
+                    <div class="abnormal-filters">
+                        <label class="filter-checkbox">
+                            <input type="checkbox" id="filterSlot" checked>
+                            <span>Slot Revisit</span>
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" id="filterShelf" checked>
+                            <span>Shelf Revisit</span>
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" id="filterAisle" checked>
+                            <span>Aisle Revisit</span>
+                        </label>
+                    </div>
+                    <div class="abnormal-divider"></div>
+                    <div id="abnormalWavesList"></div>
+                    <div class="multi-select-actions">
+                        <button class="btn btn-sm" id="selectAllAbnormalBtn">Select All Abnormal</button>
+                    </div>
                 </div>
             </div>
             
@@ -146,6 +168,75 @@
                 <span id="speedValue" style="color:rgba(255,255,255,0.5);font-size:11px;">400ms</span>
             </div>
         </div>
+
+        <!-- Metrics Panel (Above Map) -->
+        <div class="metrics-panel" id="metricsPanel">
+            <div class="metrics-header">
+                <h3>📊 Route Metrics</h3>
+            </div>
+
+            <!-- Metrics Cards Section (Top) -->
+            <div class="metrics-cards-section" id="metricsCardsSection">
+                <div class="metrics-grid">
+                    <div class="metric-card warning clickable" id="locationCrossCard">
+                        <div class="metric-label">Slot Revisit</div>
+                        <div class="metric-value" id="metricLocationCrosses">0</div>
+                        <div class="metric-subtitle">revisit count</div>
+                    </div>
+                    <div class="metric-card warning clickable" id="locationCrossBayCard">
+                        <div class="metric-label">Shelf Revisit</div>
+                        <div class="metric-value" id="metricLocationCrossesBay">0</div>
+                        <div class="metric-subtitle">revisit count</div>
+                    </div>
+                    <div class="metric-card danger clickable" id="aisleCrossCard">
+                        <div class="metric-label">Aisle Revisit</div>
+                        <div class="metric-value" id="metricAisleCrosses">0</div>
+                        <div class="metric-subtitle">revisit count</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Current Unit</div>
+                        <div class="metric-value" id="metricCurrentUnit">0</div>
+                        <div class="metric-subtitle" id="metricTotalUnits">of 0 total</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Route Distance</div>
+                        <div class="metric-value" id="metricDistance">0 m</div>
+                        <div class="metric-subtitle">meters</div>
+                    </div>
+                    <div class="metric-card info">
+                        <div class="metric-label">Total Time</div>
+                        <div class="metric-value" id="metricTotalTime">0:00</div>
+                        <div class="metric-subtitle">picking duration</div>
+                    </div>
+                    <div class="metric-card info">
+                        <div class="metric-label">Avg Time/Unit</div>
+                        <div class="metric-value" id="metricAvgTime">0s</div>
+                        <div class="metric-subtitle">per location</div>
+                    </div>
+                    <div class="metric-card info">
+                        <div class="metric-label">Pick Speed</div>
+                        <div class="metric-value" id="metricPickSpeed">0</div>
+                        <div class="metric-subtitle">units/min</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SKU Statistics Section (Bottom with collapse) -->
+            <div class="sku-stats-section" id="skuStatsSection">
+                <div class="sku-stats-header">
+                    <h4>📦 SKU Statistics</h4>
+                    <div class="sku-stats-controls">
+                        <span class="sku-count" id="skuCount">0 SKUs</span>
+                        <button class="btn btn-sm sku-toggle-btn" id="skuToggleBtn">
+                            <span class="toggle-icon">▼</span> Expand
+                        </button>
+                    </div>
+                </div>
+                <div class="sku-stats-list collapsed" id="skuStatsList">
+                    <div class="sku-stats-empty">No SKU data available</div>
+                </div>
+            </div>
+        </div>
         
         <div class="map-container" id="mapContainer">
             <div class="canvas-wrapper">
@@ -170,69 +261,6 @@
                     <span>Low (1 visit)</span>
                     <span>Medium</span>
                     <span>High (<span id="maxVisits">10</span>+ visits)</span>
-                </div>
-            </div>
-
-            <div class="metrics-panel" id="metricsPanel">
-                <div class="metrics-header">
-                    <h3>📊 Route Metrics</h3>
-                </div>
-
-                <!-- SKU Statistics Section -->
-                <div class="sku-stats-section" id="skuStatsSection">
-                    <div class="sku-stats-header">
-                        <h4>📦 SKU Statistics</h4>
-                        <span class="sku-count" id="skuCount">0 SKUs</span>
-                    </div>
-                    <div class="sku-stats-list" id="skuStatsList">
-                        <div class="sku-stats-empty">No SKU data available</div>
-                    </div>
-                </div>
-
-                <!-- Metrics Cards Section (Moved inside metrics panel) -->
-                <div class="metrics-cards-section" id="metricsCardsSection">
-                    <div class="metrics-grid">
-                        <div class="metric-card warning clickable" id="locationCrossCard">
-                            <div class="metric-label">Slot Revisit</div>
-                            <div class="metric-value" id="metricLocationCrosses">0</div>
-                            <div class="metric-subtitle">revisit count</div>
-                        </div>
-                        <div class="metric-card warning clickable" id="locationCrossBayCard">
-                            <div class="metric-label">Shelf Revisit</div>
-                            <div class="metric-value" id="metricLocationCrossesBay">0</div>
-                            <div class="metric-subtitle">revisit count</div>
-                        </div>
-                        <div class="metric-card danger clickable" id="aisleCrossCard">
-                            <div class="metric-label">Aisle Revisit</div>
-                            <div class="metric-value" id="metricAisleCrosses">0</div>
-                            <div class="metric-subtitle">revisit count</div>
-                        </div>
-                        <div class="metric-card">
-                            <div class="metric-label">Current Unit</div>
-                            <div class="metric-value" id="metricCurrentUnit">0</div>
-                            <div class="metric-subtitle" id="metricTotalUnits">of 0 total</div>
-                        </div>
-                        <div class="metric-card">
-                            <div class="metric-label">Route Distance</div>
-                            <div class="metric-value" id="metricDistance">0 m</div>
-                            <div class="metric-subtitle">meters</div>
-                        </div>
-                        <div class="metric-card info">
-                            <div class="metric-label">Total Time</div>
-                            <div class="metric-value" id="metricTotalTime">0:00</div>
-                            <div class="metric-subtitle">picking duration</div>
-                        </div>
-                        <div class="metric-card info">
-                            <div class="metric-label">Avg Time/Unit</div>
-                            <div class="metric-value" id="metricAvgTime">0s</div>
-                            <div class="metric-subtitle">per location</div>
-                        </div>
-                        <div class="metric-card info">
-                            <div class="metric-label">Pick Speed</div>
-                            <div class="metric-value" id="metricPickSpeed">0</div>
-                            <div class="metric-subtitle">units/min</div>
-                        </div>
-                    </div>
                 </div>
             </div>
 
@@ -290,6 +318,6 @@
         <div class="info-content" id="infoContent"></div>
     </div>
 
-<script type="module" src="./app.js?v=3"></script>
+<script type="module" src="./app.js?v=5"></script>
 </body>
 </html>

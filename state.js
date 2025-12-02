@@ -58,6 +58,8 @@ export const state = {
   skuWaveCounts: {},              // { sku: Set(waveIds) } - 每个SKU在哪些波次中出现
   // Zone 可视化
   showZones: false,               // 是否显示 zone 背景色
+  // Abnormal waves tracking
+  abnormalWaves: {},              // { waveId: { slotRevisits, shelfRevisits, aisleRevisits, total } }
 };
 
 export function setShelves(shelves) {
