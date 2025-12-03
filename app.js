@@ -354,7 +354,10 @@ async function prepareRoutes() {
   // 异步累加热力图，避免一次性卡顿
   await updateWaveVisits(state.selectedWaves, state.waveRoutes, state.heatmapData);
   const visits = Object.values(state.heatmapData);
-  document.getElementById('maxVisits').textContent = visits.length ? Math.max(...visits) : 0;
+  const maxVisitsEl = document.getElementById('maxVisits');
+  if (maxVisitsEl) {
+    maxVisitsEl.textContent = visits.length ? Math.max(...visits) : 0;
+  }
 
   // 构建全局时间线（按时间排序所有选中波次的步骤）
   state.globalTimeline = buildGlobalTimeline(state.selectedWaves, state.waveRoutes);
