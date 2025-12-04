@@ -274,7 +274,7 @@ async function selectAllWaves() {
   const btn = document.getElementById('selectAllWavesBtn');
   const originalText = btn.textContent;
   btn.disabled = true;
-  btn.textContent = 'Loading...';
+  btn.textContent = `Loading... (0/${state.allWaveIds.length})`;
 
   state.selectedWaves = [...state.allWaveIds];
   document.querySelectorAll('#multiSelectDropdown input[type="checkbox"]').forEach((cb) => {
@@ -283,12 +283,24 @@ async function selectAllWaves() {
   document.getElementById('multiSelectBtn').textContent = `Select Wave Paths (${state.selectedWaves.length})`;
   resetRouteState();
 
-  // 使用 setTimeout 让UI有机会更新
-  setTimeout(async () => {
-    await prepareRoutes();
-    btn.disabled = false;
-    btn.textContent = originalText;
-  }, 50);
+  // 使用 requestAnimationFrame 确保UI更新
+  requestAnimationFrame(async () => {
+    try {
+      // 显示进度
+      for (let i = 0; i < state.selectedWaves.length; i += 10) {
+        btn.textContent = `Loading... (${Math.min(i + 10, state.selectedWaves.length)}/${state.allWaveIds.length})`;
+        await new Promise(resolve => setTimeout(resolve, 0)); // 让UI有机会更新
+      }
+
+      await prepareRoutes();
+      btn.textContent = originalText;
+    } catch (error) {
+      console.error('Error loading waves:', error);
+      btn.textContent = 'Error - Try Again';
+    } finally {
+      btn.disabled = false;
+    }
+  });
 }
 
 function clearAllWaves() {
@@ -355,6 +367,9 @@ async function prepareRoutes() {
     state.visitedPaths[waveId] = [];
   });
 
+  // 让UI有机会呼吸
+  await new Promise(resolve => setTimeout(resolve, 10));
+
   // 异步累加热力图，避免一次性卡顿
   await updateWaveVisits(state.selectedWaves, state.waveRoutes, state.heatmapData);
   const visits = Object.values(state.heatmapData);
@@ -362,6 +377,9 @@ async function prepareRoutes() {
   if (maxVisitsEl) {
     maxVisitsEl.textContent = visits.length ? Math.max(...visits) : 0;
   }
+
+  // 让UI有机会呼吸
+  await new Promise(resolve => setTimeout(resolve, 10));
 
   // 构建全局时间线（按时间排序所有选中波次的步骤）
   state.globalTimeline = buildGlobalTimeline(state.selectedWaves, state.waveRoutes);
@@ -376,12 +394,14 @@ async function prepareRoutes() {
   updateLegend(state.displayMode, state.selectedWaves);
   drawMap(state);
 
-  // 异步更新对比表格（如有需要）
+  // 异步更新对比表格和图表（降低优先级）
   prepareRoutesTimeout = setTimeout(() => {
-    buildComparisonTable();
-    updateAbnormalWaves();  // Update abnormal waves after analysis
-    updateHourlyChart();    // Update hourly performance chart
-  }, 100);
+    requestIdleCallback(() => {
+      buildComparisonTable();
+      updateAbnormalWaves();
+      updateHourlyChart();
+    }, { timeout: 2000 });
+  }, 200);
 }
 
 function playAnimation() {
