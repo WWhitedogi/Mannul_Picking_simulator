@@ -392,12 +392,12 @@ async function prepareRoutes() {
   updateLegend(state.displayMode, state.selectedWaves);
   drawMap(state);
 
-  // 异步更新对比表格和图表（降低优先级）
+  // 异步更新对比表格（降低优先级）
+  // 注意：不再在这里更新 Hourly Chart，因为它现在是实时更新的
   prepareRoutesTimeout = setTimeout(() => {
     requestIdleCallback(() => {
       buildComparisonTable();
       updateAbnormalWaves();
-      updateHourlyChart();
     }, { timeout: 2000 });
   }, 200);
 }
@@ -601,6 +601,12 @@ function updateMetricsDisplay() {
   document.getElementById('metricCurrentUnit').textContent = state.currentStep;
   document.getElementById('metricDistance').textContent = `${state.routeMetrics.totalDistance.toFixed(1)} m`;
 
+  // 计算并显示平均步行距离/单位
+  const avgWalkPerUnit = state.currentStep > 0
+    ? state.routeMetrics.totalDistance / state.currentStep
+    : 0;
+  document.getElementById('metricAvgWalkPerUnit').textContent = avgWalkPerUnit > 0 ? avgWalkPerUnit.toFixed(2) : '0';
+
   // 更新时间指标
   document.getElementById('metricTotalTime').textContent = formatTime(state.routeMetrics.totalTimeSeconds || 0);
 
@@ -620,6 +626,12 @@ function updateMetricsDisplay() {
 
   // 更新 SKU 显示
   updateSkuDisplay();
+
+  // 实时更新 Hourly Performance Chart (如果已展开)
+  const hourlyContent = document.getElementById('hourlyPerformanceContent');
+  if (hourlyContent && !hourlyContent.classList.contains('collapsed')) {
+    updateHourlyChart();
+  }
 }
 
 function handleSearch(e) {
@@ -1317,13 +1329,19 @@ document.getElementById('endHourSlider').addEventListener('input', (e) => {
   updateHourlyChart();
 });
 
-// Update hourly chart
+// Update hourly chart (real-time)
 function updateHourlyChart() {
   if (!state.waveRoutes || state.selectedWaves.length === 0) {
     return;
   }
 
-  const hourlyData = calculateHourlyPickData(state.selectedWaves, state.waveRoutes);
+  // 使用实时数据：只统计到当前步骤
+  const hourlyData = calculateHourlyPickData(
+    state.selectedWaves,
+    state.waveRoutes,
+    state.currentStep,
+    state.globalTimeline
+  );
   const avg = drawHourlyChart(hourlyData, chartStartHour, chartEndHour);
 
   document.getElementById('avgPicksLabel').textContent = `Avg: ${avg.toFixed(1)} picks/hour`;

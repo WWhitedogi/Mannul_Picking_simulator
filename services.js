@@ -638,15 +638,20 @@ export function calculateEnhancedMetrics(routeMetrics, totalUnits, optimalDistan
   };
 }
 
-// 计算24小时分时段pick数据
-export function calculateHourlyPickData(selectedWaves, waveRoutes) {
+// 计算24小时分时段pick数据（实时版本：只统计到当前步骤）
+export function calculateHourlyPickData(selectedWaves, waveRoutes, currentStep = null, globalTimeline = null) {
   const hourlyData = Array(24).fill(0); // 0-23小时
 
-  selectedWaves.forEach((waveId) => {
-    const route = waveRoutes[waveId];
-    if (!route) return;
+  // 如果提供了 currentStep 和 globalTimeline，使用实时计算
+  if (currentStep !== null && globalTimeline) {
+    for (let i = 0; i <= currentStep && i < globalTimeline.length; i++) {
+      const entry = globalTimeline[i];
+      if (!entry) continue;
 
-    route.forEach((step) => {
+      const route = waveRoutes[entry.waveId];
+      if (!route || !route[entry.routeIndex]) continue;
+
+      const step = route[entry.routeIndex];
       if (step.timestamp) {
         const date = new Date(step.timestamp);
         const hour = date.getHours();
@@ -654,8 +659,24 @@ export function calculateHourlyPickData(selectedWaves, waveRoutes) {
           hourlyData[hour]++;
         }
       }
+    }
+  } else {
+    // 否则使用全量计算（用于初始化或回顾）
+    selectedWaves.forEach((waveId) => {
+      const route = waveRoutes[waveId];
+      if (!route) return;
+
+      route.forEach((step) => {
+        if (step.timestamp) {
+          const date = new Date(step.timestamp);
+          const hour = date.getHours();
+          if (hour >= 0 && hour < 24) {
+            hourlyData[hour]++;
+          }
+        }
+      });
     });
-  });
+  }
 
   return hourlyData;
 }
