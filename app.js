@@ -11,8 +11,6 @@ import {
   getPathColor,
   formatTime,
   calculateWaveMetrics,
-  calculateEnhancedMetrics,
-  calculateIdealDistance,
   calculateHourlyPickData,
 } from './services.js';
 import {
@@ -619,27 +617,6 @@ function updateMetricsDisplay() {
 
   document.getElementById('progressLabel').textContent = `${state.currentStep} / ${state.maxRouteSteps}`;
   document.getElementById('progressSlider').value = state.currentStep;
-
-  // 计算增强指标 (P0 + P1)
-  const totalUnits = state.currentStep;
-  const optimalDistance = calculateIdealDistance(
-    state.selectedWaves,
-    state.waveRoutes,
-    { verticalAisles: state.verticalAisles, horizontalAisles: state.horizontalAisles },
-    state.shelves
-  );
-
-  const enhanced = calculateEnhancedMetrics(state.routeMetrics, totalUnits, optimalDistance);
-
-  // P0: Core Efficiency Metrics
-  document.getElementById('metricPickRate').textContent = enhanced.pickRate.toFixed(1);
-  document.getElementById('metricDistancePerUnit').textContent = enhanced.distancePerUnit.toFixed(2);
-  document.getElementById('metricPathEfficiency').textContent = `${enhanced.pathEfficiency.toFixed(1)}%`;
-
-  // P1: Quality Metrics
-  document.getElementById('metricTravelSpeed').textContent = enhanced.travelSpeed.toFixed(1);
-  document.getElementById('metricWastedDistance').textContent = `${enhanced.wastedDistance.toFixed(1)} m`;
-  document.getElementById('metricRevisitRate').textContent = `${enhanced.revisitRate.toFixed(1)}%`;
 
   // 更新 SKU 显示
   updateSkuDisplay();

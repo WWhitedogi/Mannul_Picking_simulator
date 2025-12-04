@@ -175,73 +175,7 @@
                 <h3>📊 Route Metrics</h3>
             </div>
 
-            <!-- P0: Core Efficiency Metrics -->
-            <div class="metrics-section">
-                <h4 class="metrics-section-title">⚡ Core Efficiency</h4>
-                <div class="metrics-grid">
-                    <div class="metric-card success">
-                        <div class="metric-label">Pick Rate</div>
-                        <div class="metric-value" id="metricPickRate">0</div>
-                        <div class="metric-subtitle">picks/hour</div>
-                    </div>
-                    <div class="metric-card info">
-                        <div class="metric-label">Distance/Unit</div>
-                        <div class="metric-value" id="metricDistancePerUnit">0</div>
-                        <div class="metric-subtitle">meters/pick</div>
-                    </div>
-                    <div class="metric-card success">
-                        <div class="metric-label">Path Efficiency</div>
-                        <div class="metric-value" id="metricPathEfficiency">0%</div>
-                        <div class="metric-subtitle">vs optimal</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- P1: Quality Metrics -->
-            <div class="metrics-section">
-                <h4 class="metrics-section-title">📈 Quality Metrics</h4>
-                <div class="metrics-grid">
-                    <div class="metric-card info">
-                        <div class="metric-label">Travel Speed</div>
-                        <div class="metric-value" id="metricTravelSpeed">0</div>
-                        <div class="metric-subtitle">m/min</div>
-                    </div>
-                    <div class="metric-card danger">
-                        <div class="metric-label">Wasted Distance</div>
-                        <div class="metric-value" id="metricWastedDistance">0 m</div>
-                        <div class="metric-subtitle">excess travel</div>
-                    </div>
-                    <div class="metric-card warning">
-                        <div class="metric-label">Revisit Rate</div>
-                        <div class="metric-value" id="metricRevisitRate">0%</div>
-                        <div class="metric-subtitle">of total picks</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Existing: Issue Detection -->
-            <div class="metrics-section">
-                <h4 class="metrics-section-title">🚨 Issue Detection</h4>
-                <div class="metrics-grid">
-                    <div class="metric-card warning clickable" id="locationCrossCard">
-                        <div class="metric-label">Slot Revisit</div>
-                        <div class="metric-value" id="metricLocationCrosses">0</div>
-                        <div class="metric-subtitle">revisit count</div>
-                    </div>
-                    <div class="metric-card warning clickable" id="locationCrossBayCard">
-                        <div class="metric-label">Shelf Revisit</div>
-                        <div class="metric-value" id="metricLocationCrossesBay">0</div>
-                        <div class="metric-subtitle">revisit count</div>
-                    </div>
-                    <div class="metric-card danger clickable" id="aisleCrossCard">
-                        <div class="metric-label">Aisle Revisit</div>
-                        <div class="metric-value" id="metricAisleCrosses">0</div>
-                        <div class="metric-subtitle">revisit count</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Existing: Basic Statistics -->
+            <!-- Statistics (Moved to top) -->
             <div class="metrics-section">
                 <h4 class="metrics-section-title">📋 Statistics</h4>
                 <div class="metrics-grid">
@@ -273,7 +207,37 @@
                 </div>
             </div>
 
-            <!-- SKU Statistics Section (Bottom with collapse) -->
+            <!-- Hourly Performance (Moved inside metrics panel) -->
+            <div class="hourly-performance-section" id="hourlyPerformanceSection">
+                <div class="hourly-performance-header">
+                    <h4 class="metrics-section-title">📈 Hourly Performance</h4>
+                    <button class="btn btn-sm hourly-toggle-btn" id="hourlyToggleBtn">
+                        <span class="toggle-icon">▼</span> Expand
+                    </button>
+                </div>
+                <div class="hourly-performance-content collapsed" id="hourlyPerformanceContent">
+                    <div class="time-range-controls">
+                        <div class="time-range-group">
+                            <label>Start Hour:</label>
+                            <input type="range" id="startHourSlider" min="0" max="23" value="0" step="1">
+                            <span id="startHourLabel">00:00</span>
+                        </div>
+                        <div class="time-range-group">
+                            <label>End Hour:</label>
+                            <input type="range" id="endHourSlider" min="0" max="23" value="23" step="1">
+                            <span id="endHourLabel">23:00</span>
+                        </div>
+                        <div class="time-range-stats">
+                            <span id="avgPicksLabel">Avg: 0 picks/hour</span>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="hourlyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SKU Statistics -->
             <div class="sku-stats-section" id="skuStatsSection">
                 <div class="sku-stats-header">
                     <h4>📦 SKU Statistics</h4>
@@ -288,34 +252,26 @@
                     <div class="sku-stats-empty">No SKU data available</div>
                 </div>
             </div>
-        </div>
 
-        <!-- Hourly Performance Chart -->
-        <div class="hourly-performance-section" id="hourlyPerformanceSection">
-            <div class="hourly-performance-header">
-                <h3>📈 Hourly Performance</h3>
-                <button class="btn btn-sm hourly-toggle-btn" id="hourlyToggleBtn">
-                    <span class="toggle-icon">▼</span> Expand
-                </button>
-            </div>
-            <div class="hourly-performance-content collapsed" id="hourlyPerformanceContent">
-                <div class="time-range-controls">
-                    <div class="time-range-group">
-                        <label>Start Hour:</label>
-                        <input type="range" id="startHourSlider" min="0" max="23" value="0" step="1">
-                        <span id="startHourLabel">00:00</span>
+            <!-- Issue Detection -->
+            <div class="metrics-section">
+                <h4 class="metrics-section-title">🚨 Issue Detection</h4>
+                <div class="metrics-grid">
+                    <div class="metric-card warning clickable" id="locationCrossCard">
+                        <div class="metric-label">Slot Revisit</div>
+                        <div class="metric-value" id="metricLocationCrosses">0</div>
+                        <div class="metric-subtitle">revisit count</div>
                     </div>
-                    <div class="time-range-group">
-                        <label>End Hour:</label>
-                        <input type="range" id="endHourSlider" min="0" max="23" value="23" step="1">
-                        <span id="endHourLabel">23:00</span>
+                    <div class="metric-card warning clickable" id="locationCrossBayCard">
+                        <div class="metric-label">Shelf Revisit</div>
+                        <div class="metric-value" id="metricLocationCrossesBay">0</div>
+                        <div class="metric-subtitle">revisit count</div>
                     </div>
-                    <div class="time-range-stats">
-                        <span id="avgPicksLabel">Avg: 0 picks/hour</span>
+                    <div class="metric-card danger clickable" id="aisleCrossCard">
+                        <div class="metric-label">Aisle Revisit</div>
+                        <div class="metric-value" id="metricAisleCrosses">0</div>
+                        <div class="metric-subtitle">revisit count</div>
                     </div>
-                </div>
-                <div class="chart-container">
-                    <canvas id="hourlyChart"></canvas>
                 </div>
             </div>
         </div>
