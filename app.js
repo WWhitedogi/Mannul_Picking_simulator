@@ -438,37 +438,78 @@ function stopAnimation() {
   updateAbnormalWaves();
 }
 
+let seekDebounceTimer = null;
+
 function seekAnimation(e) {
   const targetStep = parseInt(e.target.value, 10);
-  state.selectedWaves.forEach((id) => (state.visitedPaths[id] = []));
-  state.routeMetrics = {
-    locationCrosses: 0,
-    locationCrossesBay: 0,
-    aisleCrosses: 0,
-    totalDistance: 0,
-    totalTimeSeconds: 0,
-    pickTimes: [],
-    slowestPickTime: 0,
-    slowestPickLocation: '',
-    fastestPickTime: Infinity,
-    fastestPickLocation: ''
-  };
-  state.locationCrossDetails = [];
-  state.locationCrossBayDetails = [];
-  state.aisleCrossDetails = [];
-  state.visitedLocations = {};
-  state.visitedBays = {};
-  state.visitedAisles = {};
-  state.shelves.forEach((s) => (s.isCurrent = false));
-  for (let i = 0; i <= targetStep && i < state.maxRouteSteps; i++) {
-    const entry = state.globalTimeline[i];
-    if (!entry) break;
-    state.waveIdOverride = entry.waveId;
-    state.routeIndexOverride = entry.routeIndex;
-    processStep(entry.routeIndex, state, { verticalAisles: state.verticalAisles, horizontalAisles: state.horizontalAisles });
+
+  // Clear previous debounce timer
+  if (seekDebounceTimer) {
+    clearTimeout(seekDebounceTimer);
   }
-  state.waveIdOverride = null;
-  state.routeIndexOverride = null;
+
+  // Quick update: only update progress label
+  document.getElementById('progressLabel').textContent = `${targetStep} / ${state.maxRouteSteps}`;
+
+  // Debounced full calculation (wait 150ms after user stops dragging)
+  seekDebounceTimer = setTimeout(() => {
+    performSeekCalculation(targetStep);
+  }, 150);
+}
+
+function performSeekCalculation(targetStep) {
+  const currentStep = state.currentStep;
+
+  // Incremental calculation: only process new steps if moving forward
+  if (targetStep > currentStep && currentStep >= 0) {
+    // Forward seek: calculate incrementally from current position
+    state.shelves.forEach((s) => (s.isCurrent = false));
+
+    for (let i = currentStep + 1; i <= targetStep && i < state.maxRouteSteps; i++) {
+      const entry = state.globalTimeline[i];
+      if (!entry) break;
+      state.waveIdOverride = entry.waveId;
+      state.routeIndexOverride = entry.routeIndex;
+      processStep(entry.routeIndex, state, { verticalAisles: state.verticalAisles, horizontalAisles: state.horizontalAisles });
+    }
+
+    state.waveIdOverride = null;
+    state.routeIndexOverride = null;
+  } else {
+    // Backward seek or first seek: full recalculation required
+    state.selectedWaves.forEach((id) => (state.visitedPaths[id] = []));
+    state.routeMetrics = {
+      locationCrosses: 0,
+      locationCrossesBay: 0,
+      aisleCrosses: 0,
+      totalDistance: 0,
+      totalTimeSeconds: 0,
+      pickTimes: [],
+      slowestPickTime: 0,
+      slowestPickLocation: '',
+      fastestPickTime: Infinity,
+      fastestPickLocation: ''
+    };
+    state.locationCrossDetails = [];
+    state.locationCrossBayDetails = [];
+    state.aisleCrossDetails = [];
+    state.visitedLocations = {};
+    state.visitedBays = {};
+    state.visitedAisles = {};
+    state.shelves.forEach((s) => (s.isCurrent = false));
+
+    for (let i = 0; i <= targetStep && i < state.maxRouteSteps; i++) {
+      const entry = state.globalTimeline[i];
+      if (!entry) break;
+      state.waveIdOverride = entry.waveId;
+      state.routeIndexOverride = entry.routeIndex;
+      processStep(entry.routeIndex, state, { verticalAisles: state.verticalAisles, horizontalAisles: state.horizontalAisles });
+    }
+
+    state.waveIdOverride = null;
+    state.routeIndexOverride = null;
+  }
+
   state.currentStep = targetStep;
   updateMetricsDisplay();
   drawMap(state);
