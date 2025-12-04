@@ -518,6 +518,30 @@
         .metric-card.info .metric-value { color: #3498db; }
         .metric-subtitle { font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 3px; }
 
+        /* Metrics Section Headers */
+        .metrics-section {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .metrics-section:last-of-type {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .metrics-section-title {
+            color: rgba(255,255,255,0.8);
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(102, 126, 234, 0.2);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
         /* SKU Statistics Section */
         .sku-stats-section {
             margin-bottom: 0;

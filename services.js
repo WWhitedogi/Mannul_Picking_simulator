@@ -603,3 +603,37 @@ export function calculateWaveMetrics(waveId, waveRoutes, aisles, shelves) {
     pickSpeed
   };
 }
+
+// 计算增强指标（P0 + P1）
+export function calculateEnhancedMetrics(routeMetrics, totalUnits, optimalDistance = 0) {
+  const totalTimeHours = routeMetrics.totalTimeSeconds / 3600;
+  const totalTimeMinutes = routeMetrics.totalTimeSeconds / 60;
+
+  // P0: Core Efficiency Metrics
+  const pickRate = totalTimeHours > 0 ? (totalUnits / totalTimeHours) : 0;
+  const distancePerUnit = totalUnits > 0 ? (routeMetrics.totalDistance / totalUnits) : 0;
+  const pathEfficiency = optimalDistance > 0 && routeMetrics.totalDistance > 0
+    ? ((optimalDistance / routeMetrics.totalDistance) * 100)
+    : 0;
+
+  // P1: Quality Metrics
+  const travelSpeed = totalTimeMinutes > 0 ? (routeMetrics.totalDistance / totalTimeMinutes) : 0;
+  const wastedDistance = Math.max(0, routeMetrics.totalDistance - optimalDistance);
+  const totalRevisits = (routeMetrics.locationCrosses || 0) +
+                        (routeMetrics.locationCrossesBay || 0) +
+                        (routeMetrics.aisleCrosses || 0);
+  const revisitRate = totalUnits > 0 ? (totalRevisits / totalUnits * 100) : 0;
+
+  return {
+    // P0
+    pickRate,
+    distancePerUnit,
+    pathEfficiency,
+    // P1
+    travelSpeed,
+    wastedDistance,
+    revisitRate,
+    // 内部使用
+    optimalDistance
+  };
+}

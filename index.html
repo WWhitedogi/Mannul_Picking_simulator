@@ -175,8 +175,53 @@
                 <h3>📊 Route Metrics</h3>
             </div>
 
-            <!-- Metrics Cards Section (Top) -->
-            <div class="metrics-cards-section" id="metricsCardsSection">
+            <!-- P0: Core Efficiency Metrics -->
+            <div class="metrics-section">
+                <h4 class="metrics-section-title">⚡ Core Efficiency</h4>
+                <div class="metrics-grid">
+                    <div class="metric-card success">
+                        <div class="metric-label">Pick Rate</div>
+                        <div class="metric-value" id="metricPickRate">0</div>
+                        <div class="metric-subtitle">picks/hour</div>
+                    </div>
+                    <div class="metric-card info">
+                        <div class="metric-label">Distance/Unit</div>
+                        <div class="metric-value" id="metricDistancePerUnit">0</div>
+                        <div class="metric-subtitle">meters/pick</div>
+                    </div>
+                    <div class="metric-card success">
+                        <div class="metric-label">Path Efficiency</div>
+                        <div class="metric-value" id="metricPathEfficiency">0%</div>
+                        <div class="metric-subtitle">vs optimal</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- P1: Quality Metrics -->
+            <div class="metrics-section">
+                <h4 class="metrics-section-title">📈 Quality Metrics</h4>
+                <div class="metrics-grid">
+                    <div class="metric-card info">
+                        <div class="metric-label">Travel Speed</div>
+                        <div class="metric-value" id="metricTravelSpeed">0</div>
+                        <div class="metric-subtitle">m/min</div>
+                    </div>
+                    <div class="metric-card danger">
+                        <div class="metric-label">Wasted Distance</div>
+                        <div class="metric-value" id="metricWastedDistance">0 m</div>
+                        <div class="metric-subtitle">excess travel</div>
+                    </div>
+                    <div class="metric-card warning">
+                        <div class="metric-label">Revisit Rate</div>
+                        <div class="metric-value" id="metricRevisitRate">0%</div>
+                        <div class="metric-subtitle">of total picks</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Existing: Issue Detection -->
+            <div class="metrics-section">
+                <h4 class="metrics-section-title">🚨 Issue Detection</h4>
                 <div class="metrics-grid">
                     <div class="metric-card warning clickable" id="locationCrossCard">
                         <div class="metric-label">Slot Revisit</div>
@@ -193,6 +238,13 @@
                         <div class="metric-value" id="metricAisleCrosses">0</div>
                         <div class="metric-subtitle">revisit count</div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Existing: Basic Statistics -->
+            <div class="metrics-section">
+                <h4 class="metrics-section-title">📋 Statistics</h4>
+                <div class="metrics-grid">
                     <div class="metric-card">
                         <div class="metric-label">Current Unit</div>
                         <div class="metric-value" id="metricCurrentUnit">0</div>
