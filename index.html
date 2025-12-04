@@ -289,7 +289,37 @@
                 </div>
             </div>
         </div>
-        
+
+        <!-- Hourly Performance Chart -->
+        <div class="hourly-performance-section" id="hourlyPerformanceSection">
+            <div class="hourly-performance-header">
+                <h3>📈 Hourly Performance</h3>
+                <button class="btn btn-sm hourly-toggle-btn" id="hourlyToggleBtn">
+                    <span class="toggle-icon">▼</span> Expand
+                </button>
+            </div>
+            <div class="hourly-performance-content collapsed" id="hourlyPerformanceContent">
+                <div class="time-range-controls">
+                    <div class="time-range-group">
+                        <label>Start Hour:</label>
+                        <input type="range" id="startHourSlider" min="0" max="23" value="0" step="1">
+                        <span id="startHourLabel">00:00</span>
+                    </div>
+                    <div class="time-range-group">
+                        <label>End Hour:</label>
+                        <input type="range" id="endHourSlider" min="0" max="23" value="23" step="1">
+                        <span id="endHourLabel">23:00</span>
+                    </div>
+                    <div class="time-range-stats">
+                        <span id="avgPicksLabel">Avg: 0 picks/hour</span>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="hourlyChart"></canvas>
+                </div>
+            </div>
+        </div>
+
         <div class="map-container" id="mapContainer">
             <div class="canvas-wrapper">
                 <canvas id="mapCanvas"></canvas>

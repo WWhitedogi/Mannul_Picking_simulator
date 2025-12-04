@@ -13,6 +13,7 @@ import {
   calculateWaveMetrics,
   calculateEnhancedMetrics,
   calculateIdealDistance,
+  calculateHourlyPickData,
 } from './services.js';
 import {
   initCanvas,
@@ -25,6 +26,7 @@ import {
   closeModal,
   updateLegend,
 } from './render.js?v=3';
+import { initChart, drawHourlyChart, resizeChart } from './chart.js';
 
 // Expose modal close for inline onclick
 window.closeModal = closeModal;
@@ -378,6 +380,7 @@ async function prepareRoutes() {
   prepareRoutesTimeout = setTimeout(() => {
     buildComparisonTable();
     updateAbnormalWaves();  // Update abnormal waves after analysis
+    updateHourlyChart();    // Update hourly performance chart
   }, 100);
 }
 
@@ -1214,5 +1217,85 @@ document.getElementById('filterAisle').addEventListener('change', updateAbnormal
 document.addEventListener('click', (e) => {
   if (!e.target.closest('.multi-select-wrapper')) {
     document.getElementById('abnormalDropdown').classList.remove('show');
+  }
+});
+
+// ==================== Hourly Performance Chart ====================
+
+let chartStartHour = 0;
+let chartEndHour = 23;
+
+// Toggle hourly performance section
+document.getElementById('hourlyToggleBtn').addEventListener('click', () => {
+  const content = document.getElementById('hourlyPerformanceContent');
+  const btn = document.getElementById('hourlyToggleBtn');
+  const isExpanded = !content.classList.contains('collapsed');
+
+  if (isExpanded) {
+    content.classList.add('collapsed');
+    btn.classList.remove('expanded');
+    btn.innerHTML = '<span class="toggle-icon">▼</span> Expand';
+  } else {
+    content.classList.remove('collapsed');
+    btn.classList.add('expanded');
+    btn.innerHTML = '<span class="toggle-icon">▼</span> Collapse';
+
+    // Initialize chart on first expand
+    if (!content.dataset.initialized) {
+      initChart();
+      content.dataset.initialized = 'true';
+    }
+
+    updateHourlyChart();
+  }
+});
+
+// Time range slider handlers
+document.getElementById('startHourSlider').addEventListener('input', (e) => {
+  chartStartHour = parseInt(e.target.value);
+
+  // Ensure start < end
+  if (chartStartHour > chartEndHour) {
+    chartEndHour = chartStartHour;
+    document.getElementById('endHourSlider').value = chartEndHour;
+    document.getElementById('endHourLabel').textContent = `${chartEndHour.toString().padStart(2, '0')}:00`;
+  }
+
+  document.getElementById('startHourLabel').textContent = `${chartStartHour.toString().padStart(2, '0')}:00`;
+  updateHourlyChart();
+});
+
+document.getElementById('endHourSlider').addEventListener('input', (e) => {
+  chartEndHour = parseInt(e.target.value);
+
+  // Ensure end > start
+  if (chartEndHour < chartStartHour) {
+    chartStartHour = chartEndHour;
+    document.getElementById('startHourSlider').value = chartStartHour;
+    document.getElementById('startHourLabel').textContent = `${chartStartHour.toString().padStart(2, '0')}:00`;
+  }
+
+  document.getElementById('endHourLabel').textContent = `${chartEndHour.toString().padStart(2, '0')}:00`;
+  updateHourlyChart();
+});
+
+// Update hourly chart
+function updateHourlyChart() {
+  if (!state.waveRoutes || state.selectedWaves.length === 0) {
+    return;
+  }
+
+  const hourlyData = calculateHourlyPickData(state.selectedWaves, state.waveRoutes);
+  const avg = drawHourlyChart(hourlyData, chartStartHour, chartEndHour);
+
+  document.getElementById('avgPicksLabel').textContent = `Avg: ${avg.toFixed(1)} picks/hour`;
+}
+
+// Resize chart on window resize
+window.addEventListener('resize', () => {
+  const content = document.getElementById('hourlyPerformanceContent');
+  if (!content.classList.contains('collapsed')) {
+    resizeChart();
+    updateHourlyChart();
   }
 });

@@ -637,3 +637,25 @@ export function calculateEnhancedMetrics(routeMetrics, totalUnits, optimalDistan
     optimalDistance
   };
 }
+
+// 计算24小时分时段pick数据
+export function calculateHourlyPickData(selectedWaves, waveRoutes) {
+  const hourlyData = Array(24).fill(0); // 0-23小时
+
+  selectedWaves.forEach((waveId) => {
+    const route = waveRoutes[waveId];
+    if (!route) return;
+
+    route.forEach((step) => {
+      if (step.timestamp) {
+        const date = new Date(step.timestamp);
+        const hour = date.getHours();
+        if (hour >= 0 && hour < 24) {
+          hourlyData[hour]++;
+        }
+      }
+    });
+  });
+
+  return hourlyData;
+}
